@@ -25,17 +25,17 @@ public class HandHold : XRBaseInteractable
 
     protected virtual void BeginAction(XRBaseInteractor interactor)
     {
-        // Empty
+        
     }
 
     protected virtual void EndAction(XRBaseInteractor interactor)
     {
-        // Empty
+        
     }
 
     protected virtual void Grab(XRBaseInteractor interactor)
     {
-        print("Handhold");
+
     }
 
     protected virtual void Drop(XRBaseInteractor interactor)

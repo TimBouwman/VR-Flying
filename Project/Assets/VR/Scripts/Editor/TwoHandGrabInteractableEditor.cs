@@ -1,4 +1,4 @@
-﻿//I do not take credit for this editor class because its the same as XRGrabInteractableEditor
+﻿//I do not take credit for this editor class because its the same as XRGrabInteractableEditor with some of my own added
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.XR.Interaction.Toolkit;
@@ -35,6 +35,8 @@ internal class TwoHandGrabInteractableEditor : Editor
     SerializedProperty m_Colliders;
     SerializedProperty m_InteractionLayerMask;
     SerializedProperty rotationOffset;
+    SerializedProperty twoHandRotationType;
+    SerializedProperty retainOrigin;
 
     bool m_showInteractableEvents = false;
 
@@ -94,6 +96,8 @@ internal class TwoHandGrabInteractableEditor : Editor
         m_Colliders = serializedObject.FindProperty("m_Colliders");
         m_InteractionLayerMask = serializedObject.FindProperty("m_InteractionLayerMask");
         rotationOffset = serializedObject.FindProperty("rotationOffset");
+        twoHandRotationType = serializedObject.FindProperty("twoHandRotationType");
+        retainOrigin = serializedObject.FindProperty("retainOrigin");
     }
 
     public override void OnInspectorGUI()
@@ -106,6 +110,8 @@ internal class TwoHandGrabInteractableEditor : Editor
         serializedObject.Update();
 
         EditorGUILayout.PropertyField(rotationOffset);
+        EditorGUILayout.PropertyField(twoHandRotationType);
+        EditorGUILayout.PropertyField(retainOrigin);
 
         EditorGUILayout.PropertyField(m_AttachTransform, Tooltips.attachTransform);
         EditorGUILayout.PropertyField(m_AttachEaseInTime, Tooltips.attachEaseInTime);

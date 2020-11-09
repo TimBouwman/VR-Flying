@@ -1,13 +1,23 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 
 public class TwoHandGrabInteractable : XRGrabInteractable
 {
+    #region Variables
     [SerializeField] private Vector3 rotationOffset = Vector3.zero;
+    private enum TwoHandRotationType { None, First, Second };
+    [SerializeField] private TwoHandRotationType twoHandRotationType = TwoHandRotationType.None;
+
+    [SerializeField] private bool retainOrigin = false;
+    private Vector3 oldPos = Vector3.zero;
+    private Quaternion oldRot = Quaternion.identity;
+
     private GripHold[] gripHolds = null;
-    private XRBaseInteractor firstInteractor = null;
+    private Quaternion attachTransformRot = Quaternion.identity;
     private XRBaseInteractor secondInteractor = null;
+    private Transform secondInteractableAttachTransform = null;
+    private Vector3 secondInteractableRotationOffset = Vector3.zero;
+    #endregion
 
     #region Override Methods
     protected override void Awake()
@@ -17,13 +27,9 @@ public class TwoHandGrabInteractable : XRGrabInteractable
     }
     public override void ProcessInteractable(XRInteractionUpdateOrder.UpdatePhase updatePhase)
     {
-        if (firstInteractor && secondInteractor)
+        if (selectingInteractor && secondInteractor)
         {
-            //selectingInteractor.attachTransform.rotation = Quaternion.LookRotation(secondInteractor.attachTransform.position - selectingInteractor.attachTransform.position);
-            //Vector3 difference = secondInteractor.attachTransform.position - selectingInteractor.attachTransform.position;
-            //float rotationZ = Mathf.Atan2(difference.y, difference.x) * Mathf.Rad2Deg;
-            //selectingInteractor.attachTransform.rotation = Quaternion.Euler(0.0f, 0.0f, rotationZ);
-            selectingInteractor.attachTransform.LookAt(secondInteractor.attachTransform.position);
+            selectingInteractor.attachTransform.rotation = GetTwoHandRotation();
             selectingInteractor.attachTransform.Rotate(rotationOffset, Space.Self);
         }
         base.ProcessInteractable(updatePhase);
@@ -31,6 +37,24 @@ public class TwoHandGrabInteractable : XRGrabInteractable
     #endregion
 
     #region Custom Methods
+    private Quaternion GetTwoHandRotation()
+    {
+        Quaternion newRotation = Quaternion.identity;
+
+        switch (twoHandRotationType)
+        {
+            case TwoHandRotationType.None:
+                newRotation = Quaternion.LookRotation(selectingInteractor.transform.position - secondInteractor.attachTransform.position);
+                break;
+            case TwoHandRotationType.First:
+                newRotation = Quaternion.LookRotation(selectingInteractor.transform.position - secondInteractor.attachTransform.position, selectingInteractor.attachTransform.up);
+                break;
+            case TwoHandRotationType.Second:
+                newRotation = Quaternion.LookRotation(selectingInteractor.transform.position - secondInteractor.attachTransform.position, secondInteractor.attachTransform.up);
+                break;
+        }
+        return newRotation;
+    }
     private void SetupHolds()
     {
         gripHolds = new GripHold[this.transform.childCount];
@@ -39,26 +63,45 @@ public class TwoHandGrabInteractable : XRGrabInteractable
             gripHolds[i] = this.transform.GetChild(i).GetComponent<GripHold>();
             gripHolds[i].Setup(this);
         }
-    }
-    public void SetGripHand(XRBaseInteractor interactor, Transform attachTransform)
-    {
-        if (firstInteractor == null)
+        if (retainOrigin)
         {
-            firstInteractor = interactor;
+            oldPos = this.transform.localPosition;
+            oldRot = this.transform.localRotation;
+        }
+    }
+    public void SetGripHand(XRBaseInteractor interactor, Transform attachTransform, Vector3 rotationOffset)
+    {
+        if (selectingInteractor == null)
+        {
+            attachTransformRot = interactor.attachTransform.rotation;
             this.attachTransform = attachTransform;
-            OnSelectEnter(firstInteractor);
+            this.rotationOffset = rotationOffset;
+            OnSelectEnter(interactor);
         }
         else if (secondInteractor == null)
         {
             secondInteractor = interactor;
+            secondInteractableAttachTransform = attachTransform;
+            secondInteractableRotationOffset = rotationOffset;
         }
     }
     public void ClearGripHand(XRBaseInteractor interactor)
     {
-        if (interactor.Equals(firstInteractor))
+        if (selectingInteractor.Equals(interactor))
         {
-            firstInteractor = null;
+            selectingInteractor.attachTransform.rotation = attachTransformRot;
             OnSelectExit(interactor);
+
+            if(secondInteractor)
+            {
+                SetGripHand(secondInteractor, secondInteractableAttachTransform, secondInteractableRotationOffset);
+                secondInteractor = null;
+            }
+            else if (retainOrigin)
+            {
+                this.transform.localPosition = oldPos;
+                this.transform.localRotation = oldRot;
+            }
         }
         else if (interactor.Equals(secondInteractor))
         {
